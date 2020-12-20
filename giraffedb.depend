@@ -1,0 +1,136 @@
+# depslib dependency file v1.0
+1608356829 source:/home/kimy/Desktop/toys/giraffedb/main.c
+	<stdio.h>
+	<stdlib.h>
+	"dast/strlist.h"
+	"dast/map.h"
+	"utils/cfgutils.h"
+	"security/user.h"
+	"core/server.h"
+	"core/container.h"
+
+1608039577 /home/kimy/Desktop/toys/giraffedb/strlist.h
+
+1608040426 /home/kimy/Desktop/toys/giraffedb/map.h
+
+1608276083 /home/kimy/Desktop/toys/giraffedb/utils/cfgutils.h
+
+1608042175 source:/home/kimy/Desktop/toys/giraffedb/map.c
+	<string.h>
+	<stdio.h>
+	<stdlib.h>
+	"map.h"
+	"strlist.h"
+
+1608276738 source:/home/kimy/Desktop/toys/giraffedb/security/user.c
+	<stdio.h>
+	<unistd.h>
+	<stdlib.h>
+	<string.h>
+	"user.h"
+	"../utils/symbols.h"
+	"../utils/cfgutils.h"
+	"../dast/strlist.h"
+
+1608016932 source:/home/kimy/Desktop/toys/giraffedb/strlist.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	"strlist.h"
+
+1608039604 source:/home/kimy/Desktop/toys/giraffedb/strutils.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	"strutils.h"
+	"strlist.h"
+
+1608016932 /home/kimy/Desktop/toys/giraffedb/strutils.h
+
+1608276586 source:/home/kimy/Desktop/toys/giraffedb/utils/cfgutils.c
+	<stdio.h>
+	<stdlib.h>
+	<fcntl.h>
+	<sys/stat.h>
+	<unistd.h>
+	<string.h>
+	"../dast/strlist.h"
+	"cfgutils.h"
+
+1608042175 source:/home/kimy/Desktop/toys/giraffedb/dast/map.c
+	<string.h>
+	<stdio.h>
+	<stdlib.h>
+	"map.h"
+	"strlist.h"
+
+1608040426 /home/kimy/Desktop/toys/giraffedb/dast/map.h
+
+1608039577 /home/kimy/Desktop/toys/giraffedb/dast/strlist.h
+
+1608016932 source:/home/kimy/Desktop/toys/giraffedb/dast/strlist.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	"strlist.h"
+
+1608192961 source:/home/kimy/Desktop/toys/giraffedb/utils/strutils.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	"strutils.h"
+	"../dast/strlist.h"
+
+1608016932 /home/kimy/Desktop/toys/giraffedb/utils/strutils.h
+
+1608276686 /home/kimy/Desktop/toys/giraffedb/security/user.h
+	"../utils/symbols.h"
+
+1608347514 /home/kimy/Desktop/toys/giraffedb/utils/symbols.h
+
+1608382227 source:/home/kimy/Desktop/toys/giraffedb/core/container.c
+	<stdio.h>
+	<stdlib.h>
+	<signal.h>
+	<string.h>
+	<time.h>
+	"../dast/map.h"
+	"../utils/symbols.h"
+	"container.h"
+
+1608349995 /home/kimy/Desktop/toys/giraffedb/core/container.h
+
+1608467443 source:/home/kimy/Desktop/toys/giraffedb/utils/netutils.c
+	<stdio.h>
+	<stdlib.h>
+	<sys/socket.h>
+	<netinet/in.h>
+	<unistd.h>
+	<netdb.h>
+	<sys/shm.h>
+	<strings.h>
+	<arpa/inet.h>
+	"netutils.h"
+
+1608354653 /home/kimy/Desktop/toys/giraffedb/utils/netutils.h
+
+1608385464 /home/kimy/Desktop/toys/giraffedb/core/server.h
+
+1608466428 source:/home/kimy/Desktop/toys/giraffedb/core/server.c
+	<stdio.h>
+	<unistd.h>
+	<stdlib.h>
+	<sys/time.h>
+	<string.h>
+	<sys/types.h>
+	<sys/stat.h>
+	<pthread.h>
+	<signal.h>
+	<sys/socket.h>
+	"../utils/cfgutils.h"
+	"../utils/netutils.h"
+	"../dast/strlist.h"
+	"../dast/map.h"
+	"container.h"
+	"server.h"
+
