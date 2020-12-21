@@ -36,6 +36,7 @@ STATUS free_all_items(struct container* ctr, CTR_TYPE ctr_type);
 
 STATUS delete_item(struct container* ctr, CTR_TYPE ctr_type, char* iname);
 
+bool is_item_exist(struct container* ctr, char* iname);
 void print_all_items_in_ctr(struct container* ctr);
 void free_handler(int);
 

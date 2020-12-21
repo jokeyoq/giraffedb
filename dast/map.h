@@ -38,6 +38,7 @@ struct int_check
     int v;
     bool is_null;
 };
+
 struct map_s* create_map_s(void);
 /*创建空允许重复的map*/
 STATUS insert_map_s(struct map_s* m, char* k, char* v);

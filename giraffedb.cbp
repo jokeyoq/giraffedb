@@ -32,6 +32,7 @@
 			<Add option="-Wall" />
 		</Compiler>
 		<Unit filename="README.md" />
+		<Unit filename="api/giraffedb.h" />
 		<Unit filename="configs/.user" />
 		<Unit filename="core/container.c">
 			<Option compilerVar="CC" />

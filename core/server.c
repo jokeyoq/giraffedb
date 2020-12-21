@@ -145,7 +145,134 @@ void* process_req(void* sinfo)
     }
     return NULL;
 }
+bool process_cmd(char* cmd, int sockfd)
+{
+    /*
+    new maps name; new umaps name; new umapi name;
+    */
+    if(cmd == NULL | strlen(cmd) == 0) return false;
+    int i, j;
+    struct map_s* maps;
+    struct umap_i* mapi;
+    char buf[BUFSIZ];
+    struct strlist* cmd_list, *p;
+    cmd_list = create_str_list();
+    i = 0;
+    j = 0;
+    /*装载命令的每一个单词进strlist*/
+    while(cmd[i] != '\0')
+    {
+        if(cmd[i] == ' ')
+        {
+            buf[j] = '\0';
+            insert_back(cmd_list, buf);
+            j = 0;
+        }
+        else
+        {
+            buf[j] = cmd[i];
+            j++;
+        }
+        i++;
+    }
+    if(j != 0)
+    {
+        buf[j] = '\0';
+        insert_back(cmd_list, buf);
+    }
+    /*逐个分析命令并且执行不同操作*/
+    p = cmd_list;
+    if((p = get_next_item(p)) != NULL)
+    {
+        if(strcmp(p->str, "new") == 0)
+        {
+            /*创建map*/
+            p = p->next;
+            if(p->next == NULL)
+            {
+                /*错误的格式*/
+                show_help_info(sockfd);
+                clear_all(cmd_list);
+                free(cmd_list);
+                return false;
+            }
+            else if(strcmp(p->str, "maps") == 0)
+            {
+                maps = create_map_s();
+                p = p->next;
+                if(p == NULL | strlen(p->str) < 1)
+                {
+                    show_help_info(sockfd);
+                    clear_all(cmd_list);
+                    free(cmd_list);
+                    return false;
+                }
+                else
+                {
+                    if(is_item_exist(ctr_map_s, p->str) == true)
+                    {
+                        /*已有同名map*/
+                        msg_to_sock(sockfd, "item is already exist in db");
+                        clear_all(cmd_list);
+                        free(cmd_list);
+                        return false;
+                    }
+                    else
+                    {
+                        printf("Hahahahah\n");
+                        add_item(ctr_map_s, (void*)maps, p->str);
+                        clear_all(cmd_list);
+                        free(cmd_list);
+                        return true;
+                    }
+                }
+            }
+        }
+        else if(strcmp(p->str, "delete") == 0)
+        {
+            /*删除map*/
+        }
+        else if(strcmp(p->str, "get") == 0)
+        {
+            /*根据key获取value: get name[key]*/
+        }
+        else if(strcmp(p->str, "remove") == 0)
+        {
+            /*根据key删除一个映射entry: remove name[key]*/
+        }
+        else if(strcmp(p->str, "print") == 0)
+        {
+            /*打印整个map*/
+        }
+        else if(strcmp(p->str, "exit") == 0)
+        {
+            close(sockfd);
+        }
+        else
+        {
+            show_help_info(sockfd);
+            return false;
+        }
+    }
+    else
+    {
+        show_help_info(sockfd);
+        return false;
+    }
+}
+void msg_to_sock(int sockfd, char* msg)
+{
+    write(sockfd, msg, strlen(msg));
+}
+void show_help_info(int sockfd)
+{
+    char help[] = "Correct format: \nnew [maps|umaps|umapi] name\n";
+    write(sockfd, help, strlen(help));
+}
 void test_server()
 {
-    init_server();
+    //init_server();
+    ctr_map_s = create_container();
+    process_cmd("new maps name", 1);
+    print_all_items_in_ctr(ctr_map_s);
 }

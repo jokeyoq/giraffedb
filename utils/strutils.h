@@ -9,6 +9,7 @@ strlist* separate_strs(char* arglsit, char separator); 返回把以separator间�
 struct strlist* separate_strs(char* arglist, char separator);
 
 void str_clear(char* str, int n);
+
 void test_strutils(void);
 /*测试函数*/
 #endif

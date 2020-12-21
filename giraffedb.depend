@@ -134,3 +134,112 @@
 	"container.h"
 	"server.h"
 
+1608537550 source:/home/kimy/Desktop/giraffedb/core/container.c
+	<stdio.h>
+	<stdlib.h>
+	<signal.h>
+	<string.h>
+	<time.h>
+	"../dast/map.h"
+	"../utils/symbols.h"
+	"container.h"
+
+1608533918 /home/kimy/Desktop/giraffedb/dast/map.h
+
+1608469746 /home/kimy/Desktop/giraffedb/utils/symbols.h
+
+1608537415 /home/kimy/Desktop/giraffedb/core/container.h
+
+1608469746 source:/home/kimy/Desktop/giraffedb/dast/map.c
+	<string.h>
+	<stdio.h>
+	<stdlib.h>
+	"map.h"
+	"strlist.h"
+
+1608469746 /home/kimy/Desktop/giraffedb/dast/strlist.h
+
+1608469746 source:/home/kimy/Desktop/giraffedb/dast/strlist.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	"strlist.h"
+
+1608469746 source:/home/kimy/Desktop/giraffedb/main.c
+	<stdio.h>
+	<stdlib.h>
+	"dast/strlist.h"
+	"dast/map.h"
+	"utils/cfgutils.h"
+	"security/user.h"
+	"core/server.h"
+	"core/container.h"
+
+1608469746 /home/kimy/Desktop/giraffedb/utils/cfgutils.h
+
+1608469746 /home/kimy/Desktop/giraffedb/security/user.h
+	"../utils/symbols.h"
+
+1608537896 /home/kimy/Desktop/giraffedb/core/server.h
+
+1608469746 source:/home/kimy/Desktop/giraffedb/security/user.c
+	<stdio.h>
+	<unistd.h>
+	<stdlib.h>
+	<string.h>
+	"user.h"
+	"../utils/symbols.h"
+	"../utils/cfgutils.h"
+	"../dast/strlist.h"
+
+1608469746 source:/home/kimy/Desktop/giraffedb/utils/cfgutils.c
+	<stdio.h>
+	<stdlib.h>
+	<fcntl.h>
+	<sys/stat.h>
+	<unistd.h>
+	<string.h>
+	"../dast/strlist.h"
+	"cfgutils.h"
+
+1608469746 source:/home/kimy/Desktop/giraffedb/utils/netutils.c
+	<stdio.h>
+	<stdlib.h>
+	<sys/socket.h>
+	<netinet/in.h>
+	<unistd.h>
+	<netdb.h>
+	<sys/shm.h>
+	<strings.h>
+	<arpa/inet.h>
+	"netutils.h"
+
+1608469746 /home/kimy/Desktop/giraffedb/utils/netutils.h
+
+1608469746 source:/home/kimy/Desktop/giraffedb/utils/strutils.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	"strutils.h"
+	"../dast/strlist.h"
+
+1608529727 /home/kimy/Desktop/giraffedb/utils/strutils.h
+
+1608538304 source:/home/kimy/Desktop/giraffedb/core/server.c
+	<stdio.h>
+	<unistd.h>
+	<stdlib.h>
+	<sys/time.h>
+	<string.h>
+	<sys/types.h>
+	<sys/stat.h>
+	<pthread.h>
+	<signal.h>
+	<sys/socket.h>
+	"../utils/cfgutils.h"
+	"../utils/netutils.h"
+	"../dast/strlist.h"
+	"../dast/map.h"
+	"container.h"
+	"server.h"
+

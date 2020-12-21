@@ -118,6 +118,18 @@ void print_all_items_in_ctr(struct container* ctr)
         it = it->next;
     }
 }
+bool is_item_exist(struct container* ctr, char* iname)
+{
+    if(ctr->item_num == 0) return false;
+    struct item* i;
+    i = ctr->item_list->next;
+    while(i != NULL)
+    {
+        if(strcmp(i->iname, iname) == 0) return true;
+        i = i->next;
+    }
+    return false;
+}
 void test_container()
 {
 
