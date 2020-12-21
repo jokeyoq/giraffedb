@@ -130,6 +130,18 @@ bool is_item_exist(struct container* ctr, char* iname)
     }
     return false;
 }
+struct item* get_item_by_name(struct item* it, char* itname)
+{
+    while(it != NULL)
+    {
+        if(strcmp(it->iname, itname) == 0)
+        {
+            return it;
+        }
+        it = it->next;
+    }
+    return NULL;
+}
 void test_container()
 {
 
