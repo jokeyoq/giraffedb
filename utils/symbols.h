@@ -6,5 +6,10 @@
 #define STATUS int
 #define OK 1
 #define ERROR 0
-
+typedef enum
+{
+    MAPS = 1,
+    UMAPS,
+    UMAPI
+}MAP_TYPE;
 #endif // _SYMBOLS_H_

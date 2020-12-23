@@ -21,9 +21,18 @@
 key v1(is running)  v2(pid)  v3(port)
 stat    running pid port
 */
+static bool process_cmd_new(struct strlist* cmd, int sockfd);
+static bool process_cmd_insert(struct strlist* cmd, int sockfd);
+static bool process_cmd_remove(struct strlist* cmd, int sockfd);
+static bool process_cmd_del(struct strlist* cmd, int sockfd);
+static bool process_cmd_get(struct strlist* cmd, int sockfd);
+static bool process_cmd_err(char* info, int sockfd);
+static bool process_cmd_print(struct strlist* cmd, int sockfd);
+/*服务器全局变量*/
 static struct container* ctr_map_s;
 static struct container* ctr_umap_s;
 static struct container* ctr_umap_i;
+static struct umap_i* type_map; /*记录了建立的数据结构名称与类型的映射关系*/
 struct SOCKFD
 {
     int sockfd;
@@ -94,7 +103,7 @@ int init_server()
     ctr_map_s = create_container();
     ctr_umap_s = create_container();
     ctr_umap_i = create_container();
-
+    type_map = create_umap_i();
     /*容器初始化成功， 开始接收请求*/
 
     while(true)
@@ -147,375 +156,28 @@ void* process_req(void* sinfo)
     }
     return NULL;
 }
-#if 0
 
-bool process_cmd(char* cmd, int sockfd)
-{
-    /*
-    new maps name; new umaps name; new umapi name;
-    */
-    if(cmd == NULL | strlen(cmd) == 0) return false;
-    int i, j;
-    struct map_s* maps;
-    char* cbuf;
-    struct umap_i* mapi;
-    struct item* it;
-    char buf[BUFSIZ];
-    struct strlist* cmd_list, *p, *q, *vs;
-    cmd_list = create_str_list();
-    i = 0;
-    j = 0;
-    /*装载命令的每一个单词进strlist*/
-    while(cmd[i] != '\0')
-    {
-        if(cmd[i] == ' ')
-        {
-            buf[j] = '\0';
-            insert_back(cmd_list, buf);
-            j = 0;
-        }
-        else
-        {
-            buf[j] = cmd[i];
-            j++;
-        }
-        i++;
-    }
-    if(j != 0)
-    {
-        buf[j] = '\0';
-        insert_back(cmd_list, buf);
-    }
-    /*逐个分析命令并且执行不同操作*/
-    p = cmd_list;
-    if((p = get_next_item(p)) != NULL)
-    {
-        if(strcmp(p->str, "new") == 0)
-        {
-            /*创建map*/
-            p = p->next;
-            if(p->next == NULL)
-            {
-                /*错误的格式*/
-                show_help_info(sockfd);
-                clear_all(cmd_list);
-                free(cmd_list);
-                return false;
-            }
-            else if(strcmp(p->str, "maps") == 0)
-            {
-                maps = create_map_s();
-                p = p->next;
-                if(p == NULL | strlen(p->str) < 1)
-                {
-                    show_help_info(sockfd);
-                    clear_all(cmd_list);
-                    free(cmd_list);
-                    return false;
-                }
-                else
-                {
-                    if(is_item_exist(ctr_map_s, p->str) == true || is_item_exist(ctr_umap_s, p->str) == true || is_item_exist(ctr_umap_i, p->str) == true)
-                    {
-                        /*已有同名map*/
-                        msg_to_sock(sockfd, "item is already exist in db");
-                        clear_all(cmd_list);
-                        free(cmd_list);
-                        return false;
-                    }
-                    else
-                    {
-                        add_item(ctr_map_s, (void*)maps, p->str);
-                    }
-                }
-            }
-            else if(strcmp(p->str, "umaps") == 0)
-            {
-                maps = create_umap_s();
-                p = p->next;
-                if(p == NULL | strlen(p->str) < 1)
-                {
-                    show_help_info(sockfd);
-                    clear_all(cmd_list);
-                    free(cmd_list);
-                    return false;
-                }
-                else
-                {
-                    if(is_item_exist(ctr_umap_s, p->str) == true || is_item_exist(ctr_map_s, p->str) == true || is_item_exist(ctr_umap_i, p->str) == true)
-                    {
-                        /*已有同名map*/
-                        msg_to_sock(sockfd, "item is already exist in db");
-                        clear_all(cmd_list);
-                        free(cmd_list);
-                        return false;
-                    }
-                    else
-                    {
-                        add_item(ctr_umap_s, (void*)maps, p->str);
-                    }
-                }
-            }
-            else if(strcmp(p->str, "umapi") == 0)
-            {
-                mapi = create_umap_i();
-                p = p->next;
-                if(p == NULL | strlen(p->str) < 1)
-                {
-                    show_help_info(sockfd);
-                    clear_all(cmd_list);
-                    free(cmd_list);
-                    return false;
-                }
-                else
-                {
-                    if(is_item_exist(ctr_umap_i, p->str) == true || is_item_exist(ctr_map_s, p->str) == true || is_item_exist(ctr_map_s, p->str) == true)
-                    {
-                        /*已有同名map*/
-                        msg_to_sock(sockfd, "item is already exist in db");
-                        clear_all(cmd_list);
-                        free(cmd_list);
-                        return false;
-                    }
-                    else
-                    {
-                        add_item(ctr_umap_i, (void*)mapi, p->str);
-                    }
-                }
-            }
-            else
-            {
-                show_help_info(sockfd);
-                clear_all(cmd_list);
-                free(cmd_list);
-                return false;
-            }
-        }
-        else if(strcmp(p->str, "delete") == 0)
-        {
-            /*删除map*/
-            p = p->next;
-            if(p == NULL | strlen(p->str) < 1)
-            {
-                show_help_info(sockfd);
-                clear_all(cmd_list);
-                return false;
-            }
-            else
-            {
-                delete_item(ctr_map_s, MAPS, p->str);
-                delete_item(ctr_umap_s, UMAPS, p->str);
-                delete_item(ctr_umap_i, UMAPI, p->str);
-            }
-        }
-        else if(strcmp(p->str, "get") == 0)
-        {
-            /*根据key获取value: get name key*/
-            p = p->next;
-            if(p == NULL | strlen(p->str) < 1)
-            {
-                show_help_info(sockfd);
-                clear_all(cmd_list);
-                free(cmd_list);
-                return false;
-            }
-            else if(is_item_exist(ctr_map_s, p->str) == true || is_item_exist(ctr_umap_s, p->str) == true || is_item_exist(ctr_umap_i, p->str) == true)
-            {
-                /*后期可以建立<name, type>映射关系 简化代码*/
-                if(p->next == NULL) return false;
-                it = get_item_by_name(ctr_map_s->item_list->next, p->str);
-                if(it != NULL)
-                {
-                    void* m = it->_item;
-                    /*这里其实可能有多值，但是这里暂时只是写入第一个对应值*/
-                    vs = getv_map_s((struct map_s*)m, p->next->str);
-                    if(vs->next != NULL)
-                    {
-                        msg_to_sock(sockfd, vs->next->str);
-                    }
-                    clear_all(vs);
-                    free(vs);
-                    clear_all(cmd_list);
-                    free(cmd_list);
-                    return true;
-                }
-                it = get_item_by_name(ctr_umap_s->item_list->next, p->str);
-                if(it != NULL)
-                {
-                    cbuf = getv_umap_s((struct map_s*)it->_item, p->next->str);
-                    msg_to_sock(sockfd, cbuf);
-                    free(cbuf);
-                    clear_all(cmd_list);
-                    free(cmd_list);
-                    return true;
-                }
-                it = get_item_by_name(ctr_umap_i->item_list->next, p->str);
-                if(it != NULL)
-                {
-                    struct int_check r = getv_umap_i((struct umap_i*)it->_item, p->next->str);
-                    if(r.is_null != 1)
-                    {
-                        sprintf(buf, "%d", r.v);
-                        msg_to_sock(sockfd, buf);
-                    }
-
-                    clear_all(cmd_list);
-                    free(cmd_list);
-                    return true;
-                }
-            }
-            else
-            {
-                msg_to_sock(sockfd, "item not found!\n");
-                show_help_info(sockfd);
-                clear_all(cmd_list);
-                free(cmd_list);
-                return false;
-            }
-        }
-        else if(strcmp(p->str, "insert") == 0)
-        {
-            /*在容器库中已有的map中插入键值对: insert mapname angela baby*/
-            p = p->next;
-            if(p == NULL | strlen(p->str) < 1)
-            {
-                show_help_info(sockfd);
-                clear_all(cmd_list);
-                free(cmd_list);
-                return false;
-            }
-            else if(is_item_exist(ctr_map_s, p->str) == true || is_item_exist(ctr_umap_s, p->str) == true || is_item_exist(ctr_umap_i, p->str) == true)
-            {
-                char* map_name = p->str;
-                char* k, *v;
-                p = p->next;
-                if(p == NULL | strlen(p->str) < 1)
-                {
-                    show_help_info(sockfd);
-                    clear_all(cmd_list);
-                    free(cmd_list);
-                    return false;
-                }
-                else
-                {
-                    k = p->str;
-                    p = p->next;
-                    if(p == NULL | strlen(p->str) < 1)
-                    {
-                        show_help_info(sockfd);
-                        clear_all(cmd_list);
-                        free(cmd_list);
-                        return false;
-                    }
-                    else
-                    {
-                        v = p->str;
-                        it = get_item_by_name(ctr_map_s->item_list, map_name);
-                        if(it != NULL)
-                        {
-                            void* m = it->_item;
-                            insert_map_s((struct map_s*)m, k, v);
-                            clear_all(cmd_list);
-                            free(cmd_list);
-                            return true;
-                        }
-                        it = get_item_by_name(ctr_umap_s->item_list, map_name);
-                        if(it != NULL)
-                        {
-                            void* m = it->_item;
-                            insert_umap_s((struct map_s*)m, k, v);
-                            clear_all(cmd_list);
-                            free(cmd_list);
-                            return true;
-                        }
-                        it = get_item_by_name(ctr_umap_i->item_list, map_name);
-                        if(it != NULL)
-                        {
-                            void* m = it->_item;
-                            insert_umap_i((struct umap_i*)m, k, atoi(v));
-                            clear_all(cmd_list);
-                            free(cmd_list);
-                            return true;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                msg_to_sock(sockfd, "item not found!");
-                show_help_info(sockfd);
-                clear_all(cmd_list);
-                free(cmd_list);
-                return false;
-            }
-        }
-        else if(strcmp(p->str, "remove") == 0)
-        {
-            /*根据key删除一个映射entry: remove mapname key*/
-            p = p->next;
-            if(p == NULL | strlen(p->str) < 1)
-            {
-                    show_help_info(sockfd);
-                    clear_all(cmd_list);
-                    free(cmd_list);
-                    return false;
-            }
-            if(is_item_exist(ctr_map_s, p->str) == true || is_item_exist(ctr_umap_s, p->str) == true  || is_item_exist(ctr_umap_i, p->str) == true)
-            {
-                it = get_item_by_name(ctr_map_s->item_list, p->str);
-                if(it != NULL)
-                {
-                    void* m = it->_item;
-                    p = p->next;
-                    if(p == NULL) return false;
-                    delete_map_s((struct map_s*)m, p->str);
-                    return true;
-                }
-                it = get_item_by_name(ctr_umap_s->item_list, p->str);
-                if(it != NULL)
-                {
-                    void* m = it->_item;
-                    p = p->next;
-                    if(p == NULL) return false;
-                    delete_map_s((struct map_s*)m, p->str);
-                    return true;
-                }
-                it = get_item_by_name(ctr_umap_i->item_list, p->str);
-                if(it != NULL)
-                {
-                    void* m = it->_item;
-                    p = p->next;
-                    if(p == NULL) return false;
-                    delete_umap_i((struct umap_i*)m, p->str);
-                    return true;
-                }
-                clear_all(cmd_list);
-                free(cmd_list);
-                return false;
-            }
-        }
-        else if(strcmp(p->str, "exit") == 0)
-        {
-            close(sockfd);
-        }
-        else
-        {
-            show_help_info(sockfd);
-            return false;
-        }
-    }
-    else
-    {
-        show_help_info(sockfd);
-        return false;
-    }
-}
-#endif // 0
 bool process_cmd(char* cmdlist, int sockfd)
 {
-    struct strlist* cmd_list;
+    struct strlist* cmd_list, *q;
+    struct item* it;
+    struct int_check ic;
     void* map;
     cmd_list = separate_strs(cmdlist, ' ');
+    q = cmd_list->next;
+    if(q == NULL)
+    {
+        msg_to_sock(sockfd, "false");
+        return false;
+    }
+    else if(strcmp(q->str, "new") == 0) return process_cmd_new(q->next, sockfd);
+    else if(strcmp(q->str, "insert") == 0) return process_cmd_insert(q->next, sockfd);
+    else if(strcmp(q->str, "remove") == 0) return process_cmd_remove(q->next, sockfd);/*删除map中的一个或多个entry,取决于是否unique*/
+    else if(strcmp(q->str, "del") == 0) return process_cmd_del(q->next, sockfd);/*删除整个map*/
+    else if(strcmp(q->str, "get") == 0) return process_cmd_get(q->next, sockfd);
+    else if(strcmp(q->str, "print") == 0) return process_cmd_print(q->next, sockfd);
+    else return process_cmd_err("ERR_FMT", sockfd);
+
 }
 void msg_to_sock(int sockfd, char* msg)
 {
@@ -532,6 +194,7 @@ void test_server()
     ctr_map_s = create_container();
     ctr_umap_s = create_container();
     ctr_umap_i = create_container();
+    type_map = create_umap_i();
     process_cmd("new maps m1", 1);
     #if 0
     struct item* it = get_item_by_name(ctr_umap_i->item_list, "m1");
