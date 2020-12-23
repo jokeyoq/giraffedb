@@ -3,63 +3,49 @@
 #include <string.h>
 #include "strutils.h"
 #include "../dast/strlist.h"
+static char* trim_str(char* str, char todel);
+char* trim_str(char* str, char todel)
+{
+    int str_len, left, right, newlen;
+    char* new_str;
+    str_len = strlen(str);
+    left = 0;
+    right = str_len-1;
+    while(str[left] == todel) left++;
+    while(str[right] == todel) right--;
+    newlen = right - left + 1;
+    new_str = (char*)malloc(newlen+1);
+    strncpy(new_str, str+left, newlen);
+    new_str[newlen] = '\0';
+    return new_str;
+}
 struct strlist* separate_strs(char* arglist, char separator)
 {
+    /*重构*/
     struct strlist* list;
-    char* substr;
-    char* str_with_sep, *tofree;
-    char* begin;
-    int arglen;
-    int len;
-    arglen = strlen(arglist);
+    char str[BUFSIZ];
+    int i, j, c;
     list = create_str_list();
-    str_with_sep = (char*)malloc(sizeof(char)*arglen+2);
-    tofree = str_with_sep;
-    strncpy(str_with_sep, arglist, arglen);
-    if(str_with_sep[arglen-1]!=separator)
+    arglist = trim_str(arglist, separator);
+    i = 0;  j = 0;
+    while((c = arglist[i++]) != '\0')
     {
-        /*在字符串末尾添加多一个分隔符 方便尾部处理*/
-        str_with_sep[arglen] = separator;
-        str_with_sep[arglen+1] = '\0';
-    }
-    else
-    {
-        str_with_sep[arglen] = '\0';
-    }
-    if(list == NULL) return NULL;
-    begin = str_with_sep;
-    printf("%s--\n", str_with_sep);
-    len = 0;
-    while((*str_with_sep)!='\0')
-    {
-        len++;
-        if((*str_with_sep) == separator)
+        if(c == separator)
         {
-            if((*begin) == separator && len == 1)
-            {
-                /*考虑到"&ana"这种特殊情况，其实也可以写个trim消除这种情况*/
-                begin = ++str_with_sep;
-                len = 0;
-                continue;
-            }
-            else
-            {
-                substr = (char*)malloc(sizeof(char)*len);
-                strncpy(substr, begin, len);
-                substr[len-1] = '\0';
-                insert_back(list, substr);
-                len = 0;
-                begin = ++str_with_sep;
-            }
+            str[j] = '\0';
+            insert_back(list, str);
+            j = 0;
+            continue;
         }
-        else
-        {
-            str_with_sep++;
-        }
+        str[j++] = c;
     }
-    free(tofree);
+    if(j != 0)
+    {
+        str[j] = '\0';
+        insert_back(list, str);
+    }
     return list;
-};
+}
 struct strlist* get_next_item(struct strlist* head)
 {
     return (head = head->next);
@@ -74,12 +60,4 @@ void str_clear(char* str, int n)
 }
 void test_strutils()
 {
-    struct strlist* list1 = separate_strs("ana&pepe&ceta", '&');
-    struct strlist* list2 = separate_strs("ana&pepe&ceta&", '&');
-    struct strlist* list3 = separate_strs("&ana&pepe&ceta", '&');
-     struct strlist* list4 = separate_strs(" ana pepe ceta", ' ');
-    print_list(list1);
-    print_list(list2);
-    print_list(list3);
-    print_list(list4);
 }
