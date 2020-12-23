@@ -272,7 +272,7 @@ STATUS insert_umap_i(struct umap_i* m, char* k, int v)
     struct entry_i* entry;
     struct int_check ic;
     ic = getv_umap_i(m, k);
-    if(!ic.is_null) return ERROR;
+    if(ic.is_null == false) return ERROR;
     entry = (struct entry_i*)malloc(sizeof(struct entry_i));
     pos = hash_str(k);
     entry->key = (char*)malloc(strlen(k)+1);

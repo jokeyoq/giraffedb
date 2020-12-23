@@ -173,11 +173,11 @@ bool process_cmd(char* cmdlist, int sockfd)
         return false;
     }
     else if(strcmp(q->str, "new") == 0) return process_cmd_new(q->next, sockfd);
-//    else if(strcmp(q->str, "insert") == 0) return process_cmd_insert(q->next, sockfd);
+    else if(strcmp(q->str, "insert") == 0) return process_cmd_insert(q->next, sockfd);
 //    else if(strcmp(q->str, "remove") == 0) return process_cmd_remove(q->next, sockfd);/*删除map中的一个或多个entry,取决于是否unique*/
 //    else if(strcmp(q->str, "del") == 0) return process_cmd_del(q->next, sockfd);/*删除整个map*/
 //    else if(strcmp(q->str, "get") == 0) return process_cmd_get(q->next, sockfd);
-//    else if(strcmp(q->str, "print") == 0) return process_cmd_print(q->next, sockfd);
+    else if(strcmp(q->str, "print") == 0) return process_cmd_print(q->next, sockfd);
     else return process_cmd_err("ERR_FMT", sockfd);
 
 }
@@ -232,6 +232,137 @@ bool process_cmd_new(struct strlist* cmd, int sockfd)
         return true;
     }
 }
+bool process_cmd_insert(struct strlist* cmd, int sockfd)
+{
+    /*insert map_name key value */
+    struct int_check ic;
+    struct item* it;
+    char* key, *value;
+    int ivalue;
+    void* map;
+    if(cmd == NULL) {return process_cmd_err("ERR_FMT", sockfd);}
+    else if(is_item_exist(cmd->str) == false) {return process_cmd_err("ITEM_NOT_EXIST", sockfd);}
+    else
+    {
+        ic = getv_umap_i(type_map, cmd->str);
+        switch(ic.v)
+        {
+        case TMAPS:
+            it = get_item_by_name(ctr_map_s->item_list, cmd->str);
+            map = it->_item;
+            /*继续next两层获取key & value*/
+            cmd = cmd->next;
+            if(cmd == NULL){return process_cmd_err("ERR_FMT", sockfd);}
+            else
+            {
+                key = cmd->str;/*保存待插入key*/
+                cmd = cmd->next;
+                if(cmd == NULL){return process_cmd_err("ERR_FMT", sockfd);}
+                else
+                {
+                    value = cmd->str;/*保存待插入value*/
+                    insert_map_s((struct map_s*)map, key, value);
+                    msg_to_sock(sockfd, "true");
+                    return true;
+                }
+            }
+            break;
+        case TUMAPS:
+            it = get_item_by_name(ctr_umap_s->item_list, cmd->str);
+            map = it->_item;
+            /*继续next两层获取key & value*/
+            cmd = cmd->next;
+            if(cmd == NULL){return process_cmd_err("ERR_FMT", sockfd);}
+            else
+            {
+                key = cmd->str;/*保存待插入key*/
+                cmd = cmd->next;
+                if(cmd == NULL){return process_cmd_err("ERR_FMT", sockfd);}
+                else
+                {
+                    value = cmd->str;/*保存待插入value*/
+                    if(insert_umap_s((struct map_s*)map, key, value) == false)
+                    {
+                        return process_cmd_err("ENTRY_SAME_UNIQUE", sockfd);/*try to insert a same entry in a unique map*/
+                    }
+                    msg_to_sock(sockfd, "true");
+                    return true;
+                }
+            }
+            break;
+        case TUMAPI:
+            it = get_item_by_name(ctr_umap_i->item_list, cmd->str);
+            map = it->_item;
+            /*继续next两层获取key & value*/
+            cmd = cmd->next;
+            if(cmd == NULL){return process_cmd_err("ERR_FMT", sockfd);}
+            else
+            {
+                key = cmd->str;/*保存待插入key*/
+                cmd = cmd->next;
+                if(cmd == NULL){return process_cmd_err("ERR_FMT", sockfd);}
+                else
+                {
+                    ivalue = atoi(cmd->str);/*保存待插入value*/
+                    if(insert_umap_i((struct umap_i*)map, key, ivalue) == false)
+                    {
+                        return process_cmd_err("ENTRY_SAME_UNIQUE", sockfd);
+                    }
+                    msg_to_sock(sockfd, "true");
+                    return true;
+                }
+            }
+            break;
+        }
+    }
+}
+bool process_cmd_print(struct strlist* cmd, int sockfd)
+{
+    char print_buf[BUFSIZ];
+    struct int_check ic;
+    char* key, *value;
+    struct item* it;
+    struct map_s* maps;
+    struct entry_s* ets;
+    void* vmap;
+    struct umap_i* umapi;
+    int ivalue, i;
+    if(cmd == NULL)
+    {
+        return process_cmd_err("ERR_FMT", sockfd);
+    }
+    else if(is_item_exist(cmd->str) == false)
+    {
+        return process_cmd_err("ITEM_NOT_EXIST", sockfd);
+    }
+    else
+    {
+        ic = getv_umap_i(type_map, cmd->str);
+        switch(ic.v)
+        {
+        case TMAPS:
+        case TUMAPS:
+            /*打印MAPS和UMAPS是一样的 不需要区别处理*/
+            if((it = get_item_by_name(ctr_map_s->item_list, cmd->str)) == NULL)
+            {
+                it = get_item_by_name(ctr_umap_s->item_list, cmd->str);
+            }
+            vmap = it->_item;
+            maps = (struct map_s*)vmap;
+            for(i = 0; i < SIZHASHTAB; i++)
+            {
+                ets = maps->entries[i]->next;
+                while(ets != NULL)
+                {
+                    printf("\n<%s,%s> in[%d]\n", ets->key, ets->value, i);
+                    ets = ets->next;
+                }
+            }
+            msg_to_sock(sockfd, "true");
+            return true;
+        }
+    }
+}
 bool process_cmd_err(char* info, int sockfd)
 {
     char* buf = (char*)malloc(strlen(info) + strlen("false ") + 1);
@@ -257,6 +388,10 @@ void test_server()
     ctr_umap_i = create_container();
     type_map = create_umap_i();
     process_cmd("new m1 maps", 1);
+    process_cmd("insert m1 angela baby", 1);
+    process_cmd("insert m1 nisha shark", 1);
+    process_cmd("insert m1 apple pie", 1);
+    process_cmd("print m1", 1);
     #if 0
     struct item* it = get_item_by_name(ctr_umap_i->item_list, "m1");
     struct umap_i* ms = (struct map_s*)it->_item;
