@@ -2,8 +2,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include "user.h"
 #include "../utils/symbols.h"
+#include "user.h"
 #include "../utils/cfgutils.h"
 #include "../dast/strlist.h"
 static char* encoding(char* oripsd);/*密码加密算法*/

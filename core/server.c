@@ -14,6 +14,7 @@
 #include "../utils/strutils.h"
 #include "../dast/strlist.h"
 #include "../dast/map.h"
+#include "../utils/symbols.h"
 #include "container.h"
 #include "server.h"
 /*
@@ -33,6 +34,7 @@ static struct container* ctr_map_s;
 static struct container* ctr_umap_s;
 static struct container* ctr_umap_i;
 static struct umap_i* type_map; /*记录了建立的数据结构名称与类型的映射关系*/
+static bool is_item_exist(char* iname);
 struct SOCKFD
 {
     int sockfd;
@@ -171,13 +173,72 @@ bool process_cmd(char* cmdlist, int sockfd)
         return false;
     }
     else if(strcmp(q->str, "new") == 0) return process_cmd_new(q->next, sockfd);
-    else if(strcmp(q->str, "insert") == 0) return process_cmd_insert(q->next, sockfd);
-    else if(strcmp(q->str, "remove") == 0) return process_cmd_remove(q->next, sockfd);/*删除map中的一个或多个entry,取决于是否unique*/
-    else if(strcmp(q->str, "del") == 0) return process_cmd_del(q->next, sockfd);/*删除整个map*/
-    else if(strcmp(q->str, "get") == 0) return process_cmd_get(q->next, sockfd);
-    else if(strcmp(q->str, "print") == 0) return process_cmd_print(q->next, sockfd);
+//    else if(strcmp(q->str, "insert") == 0) return process_cmd_insert(q->next, sockfd);
+//    else if(strcmp(q->str, "remove") == 0) return process_cmd_remove(q->next, sockfd);/*删除map中的一个或多个entry,取决于是否unique*/
+//    else if(strcmp(q->str, "del") == 0) return process_cmd_del(q->next, sockfd);/*删除整个map*/
+//    else if(strcmp(q->str, "get") == 0) return process_cmd_get(q->next, sockfd);
+//    else if(strcmp(q->str, "print") == 0) return process_cmd_print(q->next, sockfd);
     else return process_cmd_err("ERR_FMT", sockfd);
 
+}
+bool is_item_exist(char* iname)
+{
+    struct int_check ic = getv_umap_i(type_map, iname);
+    switch(ic.v)
+    {
+    case TMAPS:
+        return get_item_by_name(ctr_map_s->item_list, iname) == NULL ? false : true;
+        break;
+    case TUMAPS:
+        return get_item_by_name(ctr_umap_s->item_list, iname) == NULL ? false : true;
+        break;
+    case TUMAPI:
+        return get_item_by_name(ctr_umap_i->item_list, iname) == NULL ? false : true;
+        break;
+    }
+    return false;
+}
+bool process_cmd_new(struct strlist* cmd, int sockfd)
+{
+    /*new mapname [umaps|umapi|maps]*/
+    char* map_name;
+    if(cmd == NULL) {return process_cmd_err("ERR_FMT", sockfd);}
+    else if(is_item_exist(cmd->str) == true) {return process_cmd_err("ITEM_EXIST", sockfd);}
+    else
+    {
+        map_name = cmd->str;
+        cmd = cmd->next;
+        if(cmd == NULL) {return process_cmd_err("ERR_FMT", sockfd);}
+        else if(strcmp(cmd->str, "maps") == 0)
+        {
+            add_item(ctr_map_s, (void*)create_map_s(), map_name);
+            insert_umap_i(type_map, map_name, TMAPS);/*更新变量-类型映射表*/
+        }
+        else if(strcmp(cmd->str, "umaps") == 0)
+        {
+            add_item(ctr_umap_s, (void*)create_umap_s(), map_name);
+            insert_umap_i(type_map, map_name, TUMAPS);
+        }
+        else if(strcmp(cmd->str, "umapi") == 0)
+        {
+            add_item(ctr_umap_i, (void*)create_umap_s(), map_name);
+            insert_umap_i(type_map, map_name, TUMAPI);
+        }
+        else
+        {
+            return process_cmd_err("ERR_FMT", sockfd);
+        }
+        msg_to_sock(sockfd, "true");
+        return true;
+    }
+}
+bool process_cmd_err(char* info, int sockfd)
+{
+    char* buf = (char*)malloc(strlen(info) + strlen("false ") + 1);
+    strcpy(buf, "false ");
+    strcat(buf, info);
+    msg_to_sock(sockfd, buf);
+    return false;
 }
 void msg_to_sock(int sockfd, char* msg)
 {
@@ -195,7 +256,7 @@ void test_server()
     ctr_umap_s = create_container();
     ctr_umap_i = create_container();
     type_map = create_umap_i();
-    process_cmd("new maps m1", 1);
+    process_cmd("new m1 maps", 1);
     #if 0
     struct item* it = get_item_by_name(ctr_umap_i->item_list, "m1");
     struct umap_i* ms = (struct map_s*)it->_item;

@@ -8,8 +8,8 @@
 #define ERROR 0
 typedef enum
 {
-    MAPS = 1,
-    UMAPS,
-    UMAPI
+    TMAPS = 1,
+    TUMAPS,
+    TUMAPI
 }MAP_TYPE;
 #endif // _SYMBOLS_H_

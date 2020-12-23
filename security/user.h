@@ -1,7 +1,6 @@
 #ifndef _USER_H_
 #define _USER_H_
 #define USER_CFG_NAME ".user"
-#include "../utils/symbols.h"
 /*ON, OF, PH三种帐号状态：ON对应已经登陆 OF对应离线 PH对应帐号被禁止*/
 bool init_user_cfg(char* cfgname);/*初始化用户配置文件*/
 bool create_user(char* cfgname, char* username, char* passwd, char* status);/*这里的passwd经过加密存储*/
