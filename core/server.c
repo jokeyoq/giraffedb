@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 #include "../utils/cfgutils.h"
 #include "../utils/netutils.h"
+#include "../utils/strutils.h"
 #include "../dast/strlist.h"
 #include "../dast/map.h"
 #include "container.h"
@@ -146,6 +147,8 @@ void* process_req(void* sinfo)
     }
     return NULL;
 }
+#if 0
+
 bool process_cmd(char* cmd, int sockfd)
 {
     /*
@@ -507,6 +510,13 @@ bool process_cmd(char* cmd, int sockfd)
         return false;
     }
 }
+#endif // 0
+bool process_cmd(char* cmdlist, int sockfd)
+{
+    struct strlist* cmd_list;
+    void* map;
+    cmd_list = separate_strs(cmdlist, ' ');
+}
 void msg_to_sock(int sockfd, char* msg)
 {
     write(sockfd, msg, strlen(msg));
@@ -529,7 +539,7 @@ void test_server()
     insert_umap_i(ms, "angela", 100);
     process_cmd("get m1 angela", 1);
     #endif
-    process_cmd("insert m1 huge fs", 1);
-    process_cmd("insert m1 angela ga", 1);
-    process_cmd("print m1", 2);
+    //process_cmd("insert m1 huge fs", 1);
+    //process_cmd("insert m1 angela ga", 1);
+    //process_cmd("print m1", 2);
 }
