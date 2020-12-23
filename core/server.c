@@ -322,11 +322,14 @@ bool process_cmd_print(struct strlist* cmd, int sockfd)
     struct int_check ic;
     char* key, *value;
     struct item* it;
+    int cur_siz;
     struct map_s* maps;
     struct entry_s* ets;
+    struct entry_i* eti;
     void* vmap;
     struct umap_i* umapi;
     int ivalue, i;
+    cur_siz = 0;
     if(cmd == NULL)
     {
         return process_cmd_err("ERR_FMT", sockfd);
@@ -354,11 +357,117 @@ bool process_cmd_print(struct strlist* cmd, int sockfd)
                 ets = maps->entries[i]->next;
                 while(ets != NULL)
                 {
-                    printf("\n<%s,%s> in[%d]\n", ets->key, ets->value, i);
+                    if(cur_siz+1 < BUFSIZ-1) {strcat(print_buf, "[");}
+                    else
+                    {
+                        i = SIZHASHTAB+5;/*这里只是个标记，因为还有一次循环，所以当大小超界之后i==16做相应处理*/
+                        break;
+                    }
+                    cur_siz++;
+                    if(cur_siz + strlen(ets->key) < BUFSIZ-1) {strcat(print_buf, ets->key);}
+                    else
+                    {
+                        i = SIZHASHTAB+5;
+                        break;
+                    }
+                    cur_siz += strlen(ets->key);
+                    if(cur_siz + 1 < BUFSIZ-1) {strcat(print_buf, ":");}
+                    else
+                    {
+                        i = SIZHASHTAB+5;
+                        break;
+                    }
+                    cur_siz ++;
+                    if(cur_siz + strlen(ets->value) < BUFSIZ-1) {strcat(print_buf, ets->value);}
+                    else
+                    {
+                        i = SIZHASHTAB+5;
+                        break;
+                    }
+                    cur_siz += strlen(ets->value);
+                    if(cur_siz + 2 < BUFSIZ-1) {strcat(print_buf, "]\n");}
+                    else
+                    {
+                        i = SIZHASHTAB+5;
+                        break;
+                    }
+                    cur_siz += 2;
                     ets = ets->next;
                 }
             }
-            msg_to_sock(sockfd, "true");
+            if(i == SIZHASHTAB+6)
+            {
+                /*如果超出打印范围超出不打印，末尾替换为...*/
+                print_buf[BUFSIZ-6] = '\n';
+                print_buf[BUFSIZ-5] = '.';
+                print_buf[BUFSIZ-4] = '.';
+                print_buf[BUFSIZ-3] = '.';
+                print_buf[BUFSIZ-2] = '\n';
+                print_buf[BUFSIZ-1] = '\0';
+            }
+            msg_to_sock(sockfd, print_buf);/*这里写回的值特殊不是true，在写客户端的时候要注意*/
+            return true;
+        case TUMAPI:
+            it = get_item_by_name(ctr_umap_i->item_list, cmd->str);
+            vmap = it->_item;
+            umapi= (struct umap_i*)vmap;
+            printf("...\n");
+            for(i = 0; i < SIZHASHTAB; i++)
+            {
+                eti = umapi->entries[i]->next;
+                while(eti != NULL)
+                {
+                    if(cur_siz+1 < BUFSIZ-1) {strcat(print_buf, "[");}
+                    else
+                    {
+                        i = SIZHASHTAB+5;/*这里只是个标记，因为还有一次循环，所以当大小超界之后i==16做相应处理*/
+                        break;
+                    }
+                    cur_siz++;
+                    if(cur_siz + strlen(eti->key) < BUFSIZ-1) {strcat(print_buf, eti->key);}
+                    else
+                    {
+                        i = SIZHASHTAB+5;
+                        break;
+                    }
+                    cur_siz += strlen(eti->key);
+                    if(cur_siz + 1 < BUFSIZ-1) {strcat(print_buf, ":");}
+                    else
+                    {
+                        i = SIZHASHTAB+5;
+                        break;
+                    }
+                    cur_siz ++;
+                    char sival[512];
+                    sprintf(sival, "%d", eti->value);
+                    if(cur_siz + strlen(sival) < BUFSIZ-1) {strcat(print_buf, sival);}
+                    else
+                    {
+                        i = SIZHASHTAB+5;
+                        break;
+                    }
+                    cur_siz += strlen(sival);
+                    if(cur_siz + 2 < BUFSIZ-1) {strcat(print_buf, "]\n");}
+                    else
+                    {
+                        i = SIZHASHTAB+5;
+                        break;
+                    }
+                    cur_siz += 2;
+                    eti = eti->next;
+                }
+            }
+            if(i == SIZHASHTAB+6)
+            {
+                /*如果超出打印范围超出不打印，末尾替换为...*/
+                print_buf[BUFSIZ-6] = '\n';
+                print_buf[BUFSIZ-5] = '.';
+                print_buf[BUFSIZ-4] = '.';
+                print_buf[BUFSIZ-3] = '.';
+                print_buf[BUFSIZ-2] = '\n';
+                print_buf[BUFSIZ-1] = '\0';
+            }
+            msg_to_sock(sockfd, print_buf);/*这里写回的值特殊不是true，在写客户端的时候要注意*/
             return true;
         }
     }
@@ -387,10 +496,10 @@ void test_server()
     ctr_umap_s = create_container();
     ctr_umap_i = create_container();
     type_map = create_umap_i();
-    process_cmd("new m1 maps", 1);
-    process_cmd("insert m1 angela baby", 1);
-    process_cmd("insert m1 nisha shark", 1);
-    process_cmd("insert m1 apple pie", 1);
+    process_cmd("new m1 umapi", 1);
+    process_cmd("insert m1 angela 10", 1);
+    process_cmd("insert m1 baby 111", 1);
+    process_cmd("insert m1 fucker 222", 1);
     process_cmd("print m1", 1);
     #if 0
     struct item* it = get_item_by_name(ctr_umap_i->item_list, "m1");
