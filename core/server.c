@@ -323,9 +323,13 @@ bool process_cmd(char* cmd, int sockfd)
                 it = get_item_by_name(ctr_map_s->item_list->next, p->str);
                 if(it != NULL)
                 {
+                    void* m = it->_item;
                     /*这里其实可能有多值，但是这里暂时只是写入第一个对应值*/
-                    vs = getv_map_s((struct map_s*)it->_item, p->next->str);
-                    msg_to_sock(sockfd, vs->next->str);
+                    vs = getv_map_s((struct map_s*)m, p->next->str);
+                    if(vs->next != NULL)
+                    {
+                        msg_to_sock(sockfd, vs->next->str);
+                    }
                     clear_all(vs);
                     free(vs);
                     clear_all(cmd_list);
@@ -346,8 +350,12 @@ bool process_cmd(char* cmd, int sockfd)
                 if(it != NULL)
                 {
                     struct int_check r = getv_umap_i((struct umap_i*)it->_item, p->next->str);
-                    sprintf(buf, "%d", r.v);
-                    msg_to_sock(sockfd, buf);
+                    if(r.is_null != 1)
+                    {
+                        sprintf(buf, "%d", r.v);
+                        msg_to_sock(sockfd, buf);
+                    }
+
                     clear_all(cmd_list);
                     free(cmd_list);
                     return true;
@@ -441,11 +449,47 @@ bool process_cmd(char* cmd, int sockfd)
         else if(strcmp(p->str, "remove") == 0)
         {
             /*根据key删除一个映射entry: remove mapname key*/
-
-        }
-        else if(strcmp(p->str, "print") == 0)
-        {
-            /*打印整个map*/
+            p = p->next;
+            if(p == NULL | strlen(p->str) < 1)
+            {
+                    show_help_info(sockfd);
+                    clear_all(cmd_list);
+                    free(cmd_list);
+                    return false;
+            }
+            if(is_item_exist(ctr_map_s, p->str) == true || is_item_exist(ctr_umap_s, p->str) == true  || is_item_exist(ctr_umap_i, p->str) == true)
+            {
+                it = get_item_by_name(ctr_map_s->item_list, p->str);
+                if(it != NULL)
+                {
+                    void* m = it->_item;
+                    p = p->next;
+                    if(p == NULL) return false;
+                    delete_map_s((struct map_s*)m, p->str);
+                    return true;
+                }
+                it = get_item_by_name(ctr_umap_s->item_list, p->str);
+                if(it != NULL)
+                {
+                    void* m = it->_item;
+                    p = p->next;
+                    if(p == NULL) return false;
+                    delete_map_s((struct map_s*)m, p->str);
+                    return true;
+                }
+                it = get_item_by_name(ctr_umap_i->item_list, p->str);
+                if(it != NULL)
+                {
+                    void* m = it->_item;
+                    p = p->next;
+                    if(p == NULL) return false;
+                    delete_umap_i((struct umap_i*)m, p->str);
+                    return true;
+                }
+                clear_all(cmd_list);
+                free(cmd_list);
+                return false;
+            }
         }
         else if(strcmp(p->str, "exit") == 0)
         {
@@ -478,13 +522,14 @@ void test_server()
     ctr_map_s = create_container();
     ctr_umap_s = create_container();
     ctr_umap_i = create_container();
-    process_cmd("new umapi m1", 1);
+    process_cmd("new maps m1", 1);
     #if 0
     struct item* it = get_item_by_name(ctr_umap_i->item_list, "m1");
     struct umap_i* ms = (struct map_s*)it->_item;
     insert_umap_i(ms, "angela", 100);
     process_cmd("get m1 angela", 1);
     #endif
-    process_cmd("insert m1 huge 1000", 1);
-    process_cmd("get m2 huge", 1);
+    process_cmd("insert m1 huge fs", 1);
+    process_cmd("insert m1 angela ga", 1);
+    process_cmd("print m1", 2);
 }
