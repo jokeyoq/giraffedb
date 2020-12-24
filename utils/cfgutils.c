@@ -33,7 +33,7 @@ bool create_cfg(char* cfgname)
     int fd;
     char* fullpath;
     fullpath = combine_path(cfgname);
-    mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP;
+    mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IXUSR | S_IXGRP;
     fd = creat(fullpath, mode);
     free(fullpath);
     if(fd == -1) return false;

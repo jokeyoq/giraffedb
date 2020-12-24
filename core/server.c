@@ -143,18 +143,11 @@ void* process_req(void* sinfo)
 {
     int sockfd = ((struct SOCKFD*)sinfo)->sockfd;
     char buf[BUFSIZ];
-    read(sockfd, buf, BUFSIZ);
-    if(strcmp(buf, "hello") == 0)
+    while(1)
     {
-        serv_do_hello(sockfd);
-    }
-    else if(strcmp(buf, "map<") == 0)
-    {
-        ;/*处理其它的shell输入*/
-    }
-    else if(strcmp(buf, "stop server") == 0)
-    {
-        quit_handler(0);
+        read(sockfd, buf, BUFSIZ);
+        printf("buf:[%s]\n", buf);
+        process_cmd(buf, sockfd);
     }
     return NULL;
 }
@@ -166,8 +159,7 @@ bool process_cmd(char* cmdlist, int sockfd)
     q = cmd_list->next;
     if(q == NULL)
     {
-        msg_to_sock(sockfd, "false");
-        return false;
+        return process_cmd_err("ERR_FMT", sockfd);
     }
     else if(strcmp(q->str, "new") == 0) return process_cmd_new(q->next, sockfd);
     else if(strcmp(q->str, "insert") == 0) return process_cmd_insert(q->next, sockfd);
@@ -210,6 +202,7 @@ bool process_cmd_new(struct strlist* cmd, int sockfd)
         {
             add_item(ctr_map_s, (void*)create_map_s(), map_name);
             insert_umap_i(type_map, map_name, TMAPS);/*更新变量-类型映射表*/
+
         }
         else if(strcmp(cmd->str, "umaps") == 0)
         {
@@ -225,8 +218,7 @@ bool process_cmd_new(struct strlist* cmd, int sockfd)
         {
             return process_cmd_err("ERR_FMT", sockfd);
         }
-        msg_to_sock(sockfd, "true");
-        return true;
+        return msg_to_sock(sockfd, "new");
     }
 }
 bool process_cmd_insert(struct strlist* cmd, int sockfd)
@@ -259,8 +251,7 @@ bool process_cmd_insert(struct strlist* cmd, int sockfd)
                 {
                     value = cmd->str;/*保存待插入value*/
                     insert_map_s((struct map_s*)map, key, value);
-                    msg_to_sock(sockfd, "true");
-                    return true;
+                    return msg_to_sock(sockfd, "insert");
                 }
             }
             break;
@@ -282,8 +273,7 @@ bool process_cmd_insert(struct strlist* cmd, int sockfd)
                     {
                         return process_cmd_err("ENTRY_SAME_UNIQUE", sockfd);/*try to insert a same entry in a unique map*/
                     }
-                    msg_to_sock(sockfd, "true");
-                    return true;
+                    return msg_to_sock(sockfd, "insert");
                 }
             }
             break;
@@ -305,8 +295,7 @@ bool process_cmd_insert(struct strlist* cmd, int sockfd)
                     {
                         return process_cmd_err("ENTRY_SAME_UNIQUE", sockfd);
                     }
-                    msg_to_sock(sockfd, "true");
-                    return true;
+                    return msg_to_sock(sockfd, "insert");
                 }
             }
             break;
@@ -344,8 +333,7 @@ bool process_cmd_get(struct strlist* cmd, int sockfd)
             else if((value = getv_umap_s(maps, cmd->str)) == NULL){return process_cmd_err("KEY_NOT_FOUND", sockfd);}
             else
             {
-                msg_to_sock(sockfd, value);
-                return true;
+                return msg_to_sock(sockfd, value);
             }
         case TUMAPI:
             it = get_item_by_name(ctr_umap_i->item_list, cmd->str);
@@ -359,11 +347,11 @@ bool process_cmd_get(struct strlist* cmd, int sockfd)
                 if(icval.is_null == true){return process_cmd_err("KEY_NOT_FOUND", sockfd);}
                 char vibuf[512];
                 sprintf(vibuf, "%d", icval.v);
-                msg_to_sock(sockfd, vibuf);
-                return true;
+                return msg_to_sock(sockfd, vibuf);
             }
         }
     }
+    return true;
 }
 bool process_cmd_remove(struct strlist* cmd, int sockfd)
 {
@@ -389,8 +377,7 @@ bool process_cmd_remove(struct strlist* cmd, int sockfd)
             else
             {
                 delete_map_s(maps, cmd->str);
-                msg_to_sock(sockfd, "true");
-                return true;
+                return msg_to_sock(sockfd, "remove");
             }
         case TUMAPS:
             it = get_item_by_name(ctr_map_s->item_list, cmd->str);
@@ -401,8 +388,7 @@ bool process_cmd_remove(struct strlist* cmd, int sockfd)
             else
             {
                 delete_umap_s(maps, cmd->str);
-                msg_to_sock(sockfd, "true");
-                return true;
+                return msg_to_sock(sockfd, "remove");
             }
         case TUMAPI:
             it = get_item_by_name(ctr_umap_i->item_list, cmd->str);
@@ -413,11 +399,11 @@ bool process_cmd_remove(struct strlist* cmd, int sockfd)
             else
             {
                 delete_umap_i(umapi, cmd->str);
-                msg_to_sock(sockfd, "true");
-                return true;
+                return msg_to_sock(sockfd, "remove");
             }
         }
     }
+    return true;
 }
 bool process_cmd_del(struct strlist* cmd, int sockfd)
 {
@@ -432,18 +418,15 @@ bool process_cmd_del(struct strlist* cmd, int sockfd)
         case MAPS:
             delete_item(ctr_map_s, ic.v, cmd->str);
             delete_umap_i(type_map, cmd->str);
-            msg_to_sock(sockfd, "true");
-            return true;
+            return msg_to_sock(sockfd, "del");
         case UMAPS:
             delete_item(ctr_umap_s, ic.v, cmd->str);
             delete_umap_i(type_map, cmd->str);
-            msg_to_sock(sockfd, "true");
-            return true;
+            return msg_to_sock(sockfd, "del");
         case UMAPI:
             delete_item(ctr_umap_i, ic.v, cmd->str);
             delete_umap_i(type_map, cmd->str);
-            msg_to_sock(sockfd, "true");
-            return true;
+            return msg_to_sock(sockfd, "del");
         }
     }
     return true;
@@ -452,7 +435,6 @@ bool process_cmd_print(struct strlist* cmd, int sockfd)
 {
     char print_buf[BUFSIZ];
     struct int_check ic;
-    char* key, *value;
     struct item* it;
     int cur_siz;
     struct map_s* maps;
@@ -460,7 +442,7 @@ bool process_cmd_print(struct strlist* cmd, int sockfd)
     struct entry_i* eti;
     void* vmap;
     struct umap_i* umapi;
-    int ivalue, i;
+    int i;
     cur_siz = 0;
     if(cmd == NULL)
     {
@@ -537,8 +519,7 @@ bool process_cmd_print(struct strlist* cmd, int sockfd)
                 print_buf[BUFSIZ-2] = '\n';
                 print_buf[BUFSIZ-1] = '\0';
             }
-            msg_to_sock(sockfd, print_buf);/*这里写回的值特殊不是true，在写客户端的时候要注意*/
-            return true;
+            return msg_to_sock(sockfd, print_buf);
         case TUMAPI:
             it = get_item_by_name(ctr_umap_i->item_list, cmd->str);
             vmap = it->_item;
@@ -599,10 +580,10 @@ bool process_cmd_print(struct strlist* cmd, int sockfd)
                 print_buf[BUFSIZ-2] = '\n';
                 print_buf[BUFSIZ-1] = '\0';
             }
-            msg_to_sock(sockfd, print_buf);/*这里写回的值特殊不是true，在写客户端的时候要注意*/
-            return true;
+            return msg_to_sock(sockfd, print_buf);
         }
     }
+    return true;
 }
 bool process_cmd_err(char* info, int sockfd)
 {
@@ -612,9 +593,13 @@ bool process_cmd_err(char* info, int sockfd)
     msg_to_sock(sockfd, buf);
     return false;
 }
-void msg_to_sock(int sockfd, char* msg)
+bool msg_to_sock(int sockfd, char* msg)
 {
+    char* buf = (char*)malloc(strlen(msg) + strlen("true ") + 1);
+    strcpy(buf, "true ");
+    strcat(buf, msg);
     write(sockfd, msg, strlen(msg));
+    return true;
 }
 void show_help_info(int sockfd)
 {
@@ -623,13 +608,5 @@ void show_help_info(int sockfd)
 }
 void test_server()
 {
-    //init_server();
-    ctr_map_s = create_container();
-    ctr_umap_s = create_container();
-    ctr_umap_i = create_container();
-    type_map = create_umap_i();
-    process_cmd("new m1 umaps", 1);
-    process_cmd("new m2 umaps", 1);
-    //process_cmd("del m2", 1);
-    process_cmd("new m2 umaps", 1);
+    init_server();
 }
