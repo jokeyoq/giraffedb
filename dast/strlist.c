@@ -89,27 +89,6 @@ void print_list(struct strlist* head)
 }
 void test_strlist(void)
 {
-    struct strlist* list = create_str_list();
-    if(list == NULL)
-    {
-        printf("Error: create_str_list");
-        return;
-    }
-    insert_back(list, "agustin");
-    insert_back(list, "pepe");
-    insert_back(list, "orange");
-    insert_back(list, "nane");
-    insert_back(list, "uruguay");
-    print_list(list);
-    delete_str(list, "nane");
-    delete_str(list, "orange");
-    printf("after delete nane & orange:\n");
-    print_list(list);
-    printf("insert into head jack & ana:\n");
-    insert_front(list, "jack");
-    insert_front(list, "ana");
-    print_list(list);
-    printf("clear all:\n");
-    clear_all(list);
+
     return;
 }

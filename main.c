@@ -16,6 +16,7 @@ int main()
     //test_cfg_utils();
     //test_user();
     //test_container();
-    test_server();
+    //test_server();
+    init_server();
     return 0;
 }

@@ -370,73 +370,12 @@ void print_umap_i(struct umap_i* m)
 }
 void test_map_s()
 {
-    int ndel;
-    struct strlist* list;
-    struct map_s* m = create_map_s();
-    insert_map_s(m, "agustin", "handsome");
-    insert_map_s(m, "peep", "beep");
-    insert_map_s(m, "nana", "tata");
-    print_map_s(m);
-    SEP;
-    printf("After delete peep & nana:\n");
-    ndel = delete_map_s(m, "peep");
-    ndel += delete_map_s(m, "nana");
-    printf("%d item(s) deleted\n", ndel);
-    print_map_s(m);
-    SEP;
-    printf("get agustin:\n");
-    list = getv_map_s(m, "agustin");
-    print_list(list);
-    SEP;
-    printf("Clear all:\n");
-    clear_map_s(m);
-    print_map_s(m);
-    SEP;
-    /*now test multiple values*/
-    printf("Get two same keys with diferent value:\n");
-    insert_map_s(m, "agag", "oppo");
-    insert_map_s(m, "agag", "vivo");
-    list = getv_map_s(m, "agag");
-    print_list(list);
-    SEP;
-    printf("All maps now:\n");
-    print_map_s(m);
+
 }
 void test_umap_s()
 {
-    struct map_s* m;
-    int ret;
-    m = create_umap_s();
-    insert_umap_s(m, "agustin", "handsome");
-    insert_umap_s(m, "ana", "lina");
-    print_map_s(m);
-    ret = insert_umap_s(m, "agustin", "joke");
-    if(ret == OK)
-        printf("OK!\n");
-    else
-        printf("ERROR!Same key!\n");
-    SEP;
-    print_map_s(m);
 }
 void test_umap_i()
 {
-    struct umap_i* m;
-    m = create_umap_i();
-    insert_umap_i(m, "agustin", 100);
-    insert_umap_i(m, "pepa", 85);
-    insert_umap_i(m, "matias", 99);
-    insert_umap_i(m, "enrique", 1);
-    print_umap_i(m);
-    SEP;
-    printf("insert a same and print all:\n");
-    insert_umap_i(m, "agustin", 11);
-    print_umap_i(m);
-    SEP;
-    printf("delete agustin and print all:\n");
-    delete_umap_i(m, "agustin");
-    print_umap_i(m);
-    SEP;
-    printf("clear all and print all:\n");
-    clear_umap_i(m);
-    print_umap_i(m);
+
 }

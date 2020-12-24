@@ -28,7 +28,9 @@ static bool process_cmd_remove(struct strlist* cmd, int sockfd);
 static bool process_cmd_del(struct strlist* cmd, int sockfd);
 static bool process_cmd_get(struct strlist* cmd, int sockfd);
 static bool process_cmd_err(char* info, int sockfd);
-static bool process_cmd_print(struct strlist* cmd, int sockfd);
+static bool process_cmd_print(struct strlist* cmd, int sockfd);\
+
+static void unlink_handler(int signum);
 /*服务器全局变量*/
 static struct container* ctr_map_s;
 static struct container* ctr_umap_s;
@@ -39,6 +41,7 @@ struct SOCKFD
 {
     int sockfd;
 };
+int sockfd;
 int init_server()
 {
     /*
@@ -48,7 +51,7 @@ int init_server()
     */
     struct strlist* vs;
     struct SOCKFD* sf;
-    int sock, sockfd;
+    int sock;
     struct stat st;
     pthread_t tid;
     char* value;
@@ -95,6 +98,7 @@ int init_server()
     signal(SIGINT, quit_handler);
     /*设置定期资源清理*/
     signal(SIGALRM, res_free_handler);
+
     struct itimerval itv;
     itv.it_interval.tv_sec = 60*60*60*12;/*12 hours*/
     itv.it_interval.tv_usec = 0;
@@ -111,17 +115,27 @@ int init_server()
     while(true)
     {
         sockfd = accept(sock, NULL, NULL);
+            /*忽略SIGPIPE*/
+        signal(SIGPIPE, unlink_handler);
         if(sockfd == -1)
         {
            exit(3);
         }
+        else if(sockfd == -2) {continue;}
         sf->sockfd = sockfd;
         pthread_create(&tid, NULL, process_req, (void*)sf);/*远程服务*/
     }
 }
+void unlink_handler(int signum)
+{
+    printf("Client quit!\n");
+    close(sockfd);
+    sockfd = -2;
+}
 void quit_handler(int signum)
 {
     /*关闭*/
+    printf("exiting....\n");
     update_cfg_value(SER_CFG_NAME, "stat", "stop", 1);
     free_all_items(ctr_map_s, MAPS);
     free_all_items(ctr_umap_i, UMAPI);
@@ -143,12 +157,15 @@ void* process_req(void* sinfo)
 {
     int sockfd = ((struct SOCKFD*)sinfo)->sockfd;
     char buf[BUFSIZ];
-    while(1)
+    while(read(sockfd, buf, BUFSIZ) && strcmp(buf, "quit") != 0)
     {
-        read(sockfd, buf, BUFSIZ);
-        printf("buf:[%s]\n", buf);
         process_cmd(buf, sockfd);
+        for(int i = 0; i < BUFSIZ; i++)
+        {
+            buf[i] = 0;
+        }
     }
+
     return NULL;
 }
 
@@ -167,8 +184,9 @@ bool process_cmd(char* cmdlist, int sockfd)
     else if(strcmp(q->str, "del") == 0) return process_cmd_del(q->next, sockfd);/*删除整个map*/
     else if(strcmp(q->str, "get") == 0) return process_cmd_get(q->next, sockfd);
     else if(strcmp(q->str, "print") == 0) return process_cmd_print(q->next, sockfd);
+    else if(strcmp(q->str, "help") == 0) show_help_info(sockfd);
     else return process_cmd_err("ERR_FMT", sockfd);
-
+    return true;
 }
 bool is_item_exist(char* iname)
 {
@@ -357,6 +375,7 @@ bool process_cmd_remove(struct strlist* cmd, int sockfd)
 {
     /* remove map_name key */
     struct item* it;
+
     void* vp;
     struct map_s* maps;
     struct umap_i* umapi;
@@ -380,7 +399,7 @@ bool process_cmd_remove(struct strlist* cmd, int sockfd)
                 return msg_to_sock(sockfd, "remove");
             }
         case TUMAPS:
-            it = get_item_by_name(ctr_map_s->item_list, cmd->str);
+            it = get_item_by_name(ctr_umap_s->item_list, cmd->str);
             vp = (void*)it->_item;
             maps = (struct map_s*)vp;
             cmd = cmd->next;
@@ -524,7 +543,6 @@ bool process_cmd_print(struct strlist* cmd, int sockfd)
             it = get_item_by_name(ctr_umap_i->item_list, cmd->str);
             vmap = it->_item;
             umapi= (struct umap_i*)vmap;
-            printf("...\n");
             for(i = 0; i < SIZHASHTAB; i++)
             {
                 eti = umapi->entries[i]->next;
@@ -603,7 +621,12 @@ bool msg_to_sock(int sockfd, char* msg)
 }
 void show_help_info(int sockfd)
 {
-    char help[] = "Correct format: \nnew [maps|umaps|umapi] name\n";
+    char help[] = "Correct format: \nTo create a data item: new name [maps | umaps | umapi] (str-str & str-int)\n\
+    To insert a record: insert name key value\n\
+    To get a value by key: get name key\n\
+    To remove a record from item: remove name key\n\
+    To delete a item from db: del name\n\
+    To quit: quit\n";
     write(sockfd, help, strlen(help));
 }
 void test_server()

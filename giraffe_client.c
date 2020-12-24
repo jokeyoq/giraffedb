@@ -18,10 +18,19 @@ int main(int argc, char* argv[])
 		printf("$ ");
 		fgets(cmd_in, BUFSIZ, stdin);
 		cmd_in[strlen(cmd_in)-1] = '\0';
+		if(strcmp("quit", cmd_in) == 0)
+        {
+            close(sock);
+            exit(0);
+        }
 		write(sock, cmd_in, strlen(cmd_in));
-		printf("<%s>\n", cmd_in);
 		read(sock, buf, BUFSIZ);
-		printf("Get response:[%s]\n", buf);
+        for(int i = 0; i < BUFSIZ; i++)
+        {
+            cmd_in[i] = 0;
+            buf[i] = 0;
+        }
+        printf("\n");
 	}
 	close(sock);
 	return 0;
