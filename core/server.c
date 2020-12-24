@@ -162,9 +162,6 @@ void* process_req(void* sinfo)
 bool process_cmd(char* cmdlist, int sockfd)
 {
     struct strlist* cmd_list, *q;
-    struct item* it;
-    struct int_check ic;
-    void* map;
     cmd_list = separate_strs(cmdlist, ' ');
     q = cmd_list->next;
     if(q == NULL)
@@ -174,9 +171,9 @@ bool process_cmd(char* cmdlist, int sockfd)
     }
     else if(strcmp(q->str, "new") == 0) return process_cmd_new(q->next, sockfd);
     else if(strcmp(q->str, "insert") == 0) return process_cmd_insert(q->next, sockfd);
-//    else if(strcmp(q->str, "remove") == 0) return process_cmd_remove(q->next, sockfd);/*删除map中的一个或多个entry,取决于是否unique*/
-//    else if(strcmp(q->str, "del") == 0) return process_cmd_del(q->next, sockfd);/*删除整个map*/
-//    else if(strcmp(q->str, "get") == 0) return process_cmd_get(q->next, sockfd);
+    else if(strcmp(q->str, "remove") == 0) return process_cmd_remove(q->next, sockfd);/*删除map中的一个或多个entry,取决于是否unique*/
+    else if(strcmp(q->str, "del") == 0) return process_cmd_del(q->next, sockfd);/*删除整个map*/
+    else if(strcmp(q->str, "get") == 0) return process_cmd_get(q->next, sockfd);
     else if(strcmp(q->str, "print") == 0) return process_cmd_print(q->next, sockfd);
     else return process_cmd_err("ERR_FMT", sockfd);
 
@@ -315,6 +312,141 @@ bool process_cmd_insert(struct strlist* cmd, int sockfd)
             break;
         }
     }
+    return true;
+}
+bool process_cmd_get(struct strlist* cmd, int sockfd)
+{
+    struct item* it;
+    void* vp;
+    struct int_check ic, icval;
+    struct map_s* maps;
+    char* value;
+    struct umap_i* umapi;
+    if(cmd == NULL) {return process_cmd_err("ERR_FMT", sockfd);}
+    else if(is_item_exist(cmd->str) == false) {return process_cmd_err("ITEM_NOT_EXIST", sockfd);}
+    else
+    {
+        ic = getv_umap_i(type_map, cmd->str);
+        switch(ic.v)
+        {
+        case TMAPS:
+        case TUMAPS:
+            /*由于时间缘故，这里非unique的maps虽然有可能一个key对应多个value，但是这里暂且只返回第一个value*/
+            /*所以UMAPS MAPS一个case即可*/
+            if((it = get_item_by_name(ctr_map_s->item_list, cmd->str)) == NULL)
+            {
+                it = get_item_by_name(ctr_umap_s->item_list, cmd->str);
+            }
+            vp = it->_item;
+            maps = (struct map_s*)vp;
+            cmd = cmd->next;
+            if(cmd == NULL) {return process_cmd_err("ERR_FMT", sockfd);}
+            else if((value = getv_umap_s(maps, cmd->str)) == NULL){return process_cmd_err("KEY_NOT_FOUND", sockfd);}
+            else
+            {
+                msg_to_sock(sockfd, value);
+                return true;
+            }
+        case TUMAPI:
+            it = get_item_by_name(ctr_umap_i->item_list, cmd->str);
+            vp = it->_item;
+            umapi = (struct umap_i*)vp;
+            cmd = cmd->next;
+            if(cmd == NULL) {return process_cmd_err("ERR_FMT", sockfd);}
+            else
+            {
+                icval = getv_umap_i(umapi, cmd->str);
+                if(icval.is_null == true){return process_cmd_err("KEY_NOT_FOUND", sockfd);}
+                char vibuf[512];
+                sprintf(vibuf, "%d", icval.v);
+                msg_to_sock(sockfd, vibuf);
+                return true;
+            }
+        }
+    }
+}
+bool process_cmd_remove(struct strlist* cmd, int sockfd)
+{
+    /* remove map_name key */
+    struct item* it;
+    void* vp;
+    struct map_s* maps;
+    struct umap_i* umapi;
+    struct int_check ic;
+    if(cmd == NULL) {return process_cmd_err("ERR_FMT", sockfd);}
+    else if(is_item_exist(cmd->str) == false) {return process_cmd_err("ITEM_NOT_EXIST", sockfd);}
+    else
+    {
+        ic = getv_umap_i(type_map, cmd->str);
+        switch(ic.v)
+        {
+        case TMAPS:
+            it = get_item_by_name(ctr_map_s->item_list, cmd->str);
+            vp = (void*)it->_item;
+            maps = (struct map_s*)vp;
+            cmd = cmd->next;
+            if(cmd == NULL) {return process_cmd_err("ERR_FMT", sockfd);}
+            else
+            {
+                delete_map_s(maps, cmd->str);
+                msg_to_sock(sockfd, "true");
+                return true;
+            }
+        case TUMAPS:
+            it = get_item_by_name(ctr_map_s->item_list, cmd->str);
+            vp = (void*)it->_item;
+            maps = (struct map_s*)vp;
+            cmd = cmd->next;
+            if(cmd == NULL) {return process_cmd_err("ERR_FMT", sockfd);}
+            else
+            {
+                delete_umap_s(maps, cmd->str);
+                msg_to_sock(sockfd, "true");
+                return true;
+            }
+        case TUMAPI:
+            it = get_item_by_name(ctr_umap_i->item_list, cmd->str);
+            vp = (void*)it->_item;
+            umapi = (struct umap_i*)vp;
+            cmd = cmd->next;
+            if(cmd == NULL) {return process_cmd_err("ERR_FMT", sockfd);}
+            else
+            {
+                delete_umap_i(umapi, cmd->str);
+                msg_to_sock(sockfd, "true");
+                return true;
+            }
+        }
+    }
+}
+bool process_cmd_del(struct strlist* cmd, int sockfd)
+{
+    struct int_check ic;
+    if(cmd == NULL) {return process_cmd_err("ERR_FMT", sockfd);}
+    else if(is_item_exist(cmd->str) == false) {return process_cmd_err("ITEM_NOT_EXIST", sockfd);}
+    else
+    {
+        ic = getv_umap_i(type_map, cmd->str);
+        switch(ic.v)
+        {
+        case MAPS:
+            delete_item(ctr_map_s, ic.v, cmd->str);
+            delete_umap_i(type_map, cmd->str);
+            msg_to_sock(sockfd, "true");
+            return true;
+        case UMAPS:
+            delete_item(ctr_umap_s, ic.v, cmd->str);
+            delete_umap_i(type_map, cmd->str);
+            msg_to_sock(sockfd, "true");
+            return true;
+        case UMAPI:
+            delete_item(ctr_umap_i, ic.v, cmd->str);
+            delete_umap_i(type_map, cmd->str);
+            msg_to_sock(sockfd, "true");
+            return true;
+        }
+    }
+    return true;
 }
 bool process_cmd_print(struct strlist* cmd, int sockfd)
 {
@@ -496,18 +628,8 @@ void test_server()
     ctr_umap_s = create_container();
     ctr_umap_i = create_container();
     type_map = create_umap_i();
-    process_cmd("new m1 umapi", 1);
-    process_cmd("insert m1 angela 10", 1);
-    process_cmd("insert m1 baby 111", 1);
-    process_cmd("insert m1 fucker 222", 1);
-    process_cmd("print m1", 1);
-    #if 0
-    struct item* it = get_item_by_name(ctr_umap_i->item_list, "m1");
-    struct umap_i* ms = (struct map_s*)it->_item;
-    insert_umap_i(ms, "angela", 100);
-    process_cmd("get m1 angela", 1);
-    #endif
-    //process_cmd("insert m1 huge fs", 1);
-    //process_cmd("insert m1 angela ga", 1);
-    //process_cmd("print m1", 2);
+    process_cmd("new m1 umaps", 1);
+    process_cmd("new m2 umaps", 1);
+    //process_cmd("del m2", 1);
+    process_cmd("new m2 umaps", 1);
 }

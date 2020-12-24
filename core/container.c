@@ -3,9 +3,9 @@
 #include <signal.h>
 #include <string.h>
 #include <time.h>
-#include "../dast/map.h"
 #include "../utils/symbols.h"
 #include "container.h"
+#include "../dast/map.h"
 #define ONE_MIN 60
 struct container* create_container()
 {
@@ -83,17 +83,17 @@ STATUS delete_item(struct container* ctr, CTR_TYPE ctr_type, char* iname)
         if(strcmp(iname, p->iname) == 0)
         {
             prev->next = p->next;
-            if(ctr_type == MAPS)
+            if(ctr_type == TMAPS)
             {
                 clear_map_s((struct map_s*)p->_item);
                 free(p->iname);
             }
-            else if(ctr_type == UMAPS)
+            else if(ctr_type == TUMAPS)
             {
                 clear_umap_s((struct map_s*)p->_item);
                 free(p->iname);
             }
-            else if(ctr_type == UMAPI)
+            else if(ctr_type == TUMAPI)
             {
                 clear_umap_i((struct umap_i*)p->_item);
                 free(p->iname);

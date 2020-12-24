@@ -288,9 +288,7 @@ STATUS insert_umap_i(struct umap_i* m, char* k, int v)
 STATUS delete_umap_i(struct umap_i* m, char* k)
 {
     int pos;
-    int delcnt;
     struct entry_i* p, *q, *prev;
-    delcnt = 0;
     pos = hash_str(k);
     p = m->entries[pos]->next;
     prev = m->entries[pos];
@@ -298,17 +296,19 @@ STATUS delete_umap_i(struct umap_i* m, char* k)
     {
         if(strcmp(k, p->key)==0)
         {
-            delcnt++;
             m->map_size--;
             q = p->next;
             free(p->key);
             free(p);
+            p = NULL;
             prev->next = q;
+            break;
         }
         prev = p;
         p = p->next;
     }
-    return delcnt;
+
+    return true;
 }
 
 struct int_check getv_umap_i(struct umap_i* m, char* k)
@@ -359,6 +359,7 @@ void print_umap_i(struct umap_i* m)
     struct entry_i* p;
     for(i = 0; i < SIZHASHTAB; i++)
     {
+        if(m->entries[i] == NULL) continue;
         p = m->entries[i]->next;
         while(p != NULL)
         {

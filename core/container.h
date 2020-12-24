@@ -2,9 +2,9 @@
 #define _CONTAINER_H_
 #define RES_MAX 1024
 #define CTR_TYPE int
-#define UMAPS 0
+#define UMAPS 2
 #define MAPS 1
-#define UMAPI 2
+#define UMAPI 3
 /*管理资源的创建&释放*/
 struct item
 {
@@ -25,7 +25,6 @@ struct container
     int free_scan_interval;
 
 };
-
 struct container* create_container(void);
 
 STATUS set_free_scan_interval(struct container* ctr, int ival);
